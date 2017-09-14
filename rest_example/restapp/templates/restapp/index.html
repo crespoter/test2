@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+    <title>Polygon Arrays</title>
+    <style>
+      /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+      #map {
+        height: 100%;
+      }
+      /* Optional: Makes the sample page fill the window. */
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <script
+        src="https://code.jquery.com/jquery-3.2.1.js"
+        integrity="sha256-DZAnKJ/6XZ9si04Hgrsxu/8s717jcIzLy3oi35EouyE="
+        crossorigin="anonymous"></script>
+    <script>
+      data = 
+      {
+        "data":[
+        {farm_name:'crespoter',coordinates:[{lat:21.774,lng:-60.190},{lat: 14.466, lng: -50.118},{lat: 32.321, lng: -68.757}],farm_area:36},
+        {farm_name:'redeye',coordinates:[{lat: 26.774, lng: -81.190},{lat: 19.466, lng: -67.118},{lat: 33.321, lng: -65.757}],farm_area:40},
+        ]
+      };
+
+      wells = {
+        data:[
+          {well_id:10,coordinates:{lat:19.20,lng:-75},water_yield:80},
+          {well_id:1,coordinates:{lat: 26.774, lng: -81.190},water_yield:100}
+        ]
+      }
+      
+
+      var map;
+      var infoWindow; 
+      function initMap() {
+        map = new google.maps.Map(document.getElementById('map'), {
+          zoom: 5,
+          center: {lat: 24.886, lng: -70.268},
+          mapTypeId: 'terrain'
+        });
+
+
+        $.getJSON("/farm/?format=json",function(result){
+          result.forEach(function(element){
+            var farmer_details = element;
+            $.getJSON("/points/"+ element.id + "/?format=json",function(result2){
+                data = [];
+                result2.forEach(function(element){
+                  coordinate = {lat:parseFloat(element.lat),lng:parseFloat(element.lon)};
+                  data.push(coordinate);
+                });
+                console.log(farmer_details);
+                var area = new google.maps.Polygon({
+                    paths: data,
+                    strokeColor: '#AAA',
+                    strokeOpacity: 0.8,
+                    strokeWeight: 3,
+                    fillColor: '#FF0000',
+                    fillOpacity: 0.35
+                  });
+
+                  area.setMap(map);
+                  area.addListener('click', function(event){
+                    infoWindow = new google.maps.InfoWindow;
+                    var vertices = this.getPath();
+                    var contentString = '<b>Farm Details</b><br> <p>Crop Season : ' +farmer_details.season_crop +"</p><br/><p>Area : "+ farmer_details.farm_area + "</p>" ;
+                    infoWindow.setContent(contentString);
+                    infoWindow.setPosition(event.latLng);
+                    infoWindow.open(map);
+                  });
+                });
+              });
+          $.getJSON("/well/",function(result){
+            result.forEach(function(element){
+              var marker = new google.maps.Marker({
+                position: {lat:parseFloat(element.lat),lng:parseFloat(element.lon)},
+                map: map,
+                title: 'Hello World!'
+              });
+              marker.addListener('click', function(event) {
+                $.getJSON("/wateryield/"+ element.id+"/",function(response){
+                  infoWindow = new google.maps.InfoWindow;
+                  infoWindow.setContent("<p>Well Details </p>" +"<br><p> Water Yield : " + response.yieldd + "<br> <p>Date Measured : " + response.DateTimeField +"</p>");
+                  infoWindow.open(map,marker);  
+                });
+              });
+                
+            });
+          });
+        });
+             
+      }
+        
+      
+    </script>
+    <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAHZ8gAWj7P5tIZxPvwTeIZgr0WSASK0jY &callback=initMap">
+    </script>
+  </body>
+</html>
